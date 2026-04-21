@@ -493,7 +493,6 @@ function closeDrawer(){
 }
 
 function buildDrawerContent(item){
-  console.log('buildDrawerContent called, item.id=', item.id, 'photos type=', typeof item.photos);
   const photos   = safeArr(item.photos);
   const videos   = safeArr(item.videos);
   const hiddenIdx= safeArr(item.hidden_photo_indices);
@@ -503,33 +502,45 @@ function buildDrawerContent(item){
   const fy       = item.cover_focal_y??50;
   const sc       = item.cover_scale||1.0;
   const ar       = item.cover_aspect_ratio||'1/1';
+  const am       = item.autoplay_mode||'';
 
-  // Полоска миниатюр
-  let stripHtml='';
+  // --- Миниатюры: фото ---
+  let stripHtml = '';
   photos.forEach((p,i)=>{
-    const hidden=hiddenIdx.includes(i);
-    const isActive=p.url===cover;
-    const aiInfo=ai.find(a=>a.photo_index===i);
-    const score=aiInfo?`<span class="dph-score" style="background:${aiInfo.confidence==='high'?'#2a7a2a':'#7a5a00'}">${aiInfo.quality_score}</span>`:""; 
-    stripHtml+=`<div class="dph-thumb${hidden?' dph-hidden':''}${isActive?' dph-active':''}" data-i="${i}" data-url="${esc(p.url)}">
+    const hidden  = hiddenIdx.includes(i);
+    const isCover = p.url === cover;
+    const aiInfo  = ai.find(a=>a.photo_index===i);
+    const score   = aiInfo ? `<span class="dph-score" style="background:${aiInfo.confidence==='high'?'#2a7a2a':'#7a5a00'}">${aiInfo.quality_score}</span>` : '';
+    stripHtml += `<div class="dph-thumb${hidden?' dph-hidden':''}${isCover?' dph-active':''}" data-i="${i}" data-url="${esc(p.url)}" data-type="photo">
       <img src="${esc(p.url)}" loading="lazy">
       ${score}
       <span class="dph-eye" data-i="${i}">${hidden?'🚫':'👁'}</span>
       <span class="dph-star" data-i="${i}" title="Сделать обложкой">⭐</span>
     </div>`;
   });
+  // --- Миниатюры: видео ---
+  videos.forEach((v,i)=>{
+    const url = v.url||v;
+    const isLive = url === item.cover_video_url;
+    stripHtml += `<div class="dph-thumb dph-video-thumb${isLive?' dph-active':''}" data-vi="${i}" data-url="${esc(url)}" data-type="video">
+      <div class="dph-video-icon">&#9654;</div>
+      ${isLive?'<span class="dph-score" style="background:#1a5a9a">LIVE</span>':''}
+    </div>`;
+  });
 
-  // autoplay
-  const am=item.autoplay_mode||'';
-
-  // Превью в левую колонку
+  // --- Превью (левая колонка) ---
   const previewPane = document.getElementById('drPreviewPane');
   if(previewPane) previewPane.innerHTML = `
-    <div class="dr-preview-wrap" style="width:100%;height:100%;border-radius:0;background:#111;position:relative;overflow:hidden;">
-      <img id="drPreviewImg" src="${esc(cover)}" style="width:100%;height:100%;object-fit:cover;object-position:${fx}% ${fy}%;transform:scale(${sc});transform-origin:${fx}% ${fy}%;display:block;">
+    <div class="dr-preview-wrap" id="drPreviewWrap">
+      <img id="drPreviewImg" src="${esc(cover)}"
+        style="width:100%;height:100%;object-fit:cover;object-position:${fx}% ${fy}%;transform:scale(${sc});transform-origin:${fx}% ${fy}%;display:block;">
+      <video id="drPreviewVid" style="display:none;width:100%;height:100%;object-fit:contain;background:#000;" controls playsinline></video>
+      <div id="drPreviewActions" class="dr-preview-actions"></div>
     </div>
-    <div class="dph-strip" style="padding:8px;background:#111;">${stripHtml}</div>
+    <div class="dph-strip">${stripHtml}</div>
   `;
+
+  // --- Правая панель ---
   document.getElementById('drawerBody').innerHTML=`
     <div class="dr-fields">
       <label class="dr-label">Название</label>
@@ -553,9 +564,9 @@ function buildDrawerContent(item){
       </div>
       <label class="dr-label">Масштаб в галерее</label>
       <select id="drDisplaySize" class="dr-select">
-        <option value="small" ${(item.display_size||'normal')==='small'?'selected':''}>🔹 Маленький (украшения, ложки)</option>
+        <option value="small" ${(item.display_size||'normal')==='small'?'selected':''}>🔹 Маленький</option>
         <option value="normal" ${(item.display_size||'normal')==='normal'?'selected':''}>▪️ Обычный</option>
-        <option value="large" ${(item.display_size||'normal')==='large'?'selected':''}>🔷 Большой (панно, иконы, мебель)</option>
+        <option value="large" ${(item.display_size||'normal')==='large'?'selected':''}>🔷 Большой</option>
         <option value="full" ${(item.display_size||'normal')==='full'?'selected':''}>🖼️ На всю ширину</option>
       </select>
       <label class="dr-size-manual-label">
@@ -564,8 +575,8 @@ function buildDrawerContent(item){
       </label>
       ${item.cover_video_url ? `
       <label class="dr-size-manual-label" style="margin-top:6px;">
-        <input type="checkbox" id="drDisableVideo" ${!item.cover_video_url?'checked':''}>
-        <span>Отключить видео (показывать только фото)</span>
+        <input type="checkbox" id="drDisableVideo">
+        <span>Отключить видео (только фото)</span>
       </label>` : ''}
     </div>
     <div class="dr-actions">
@@ -577,21 +588,50 @@ function buildDrawerContent(item){
     </div>`;
 
   const _db = document.getElementById('drawerBody');
-  // Полоска: глаз + звезда
+
+  // --- Клик по миниатюре = просмотр (НЕ смена обложки) ---
+  function showPreviewPhoto(url){
+    const img = document.getElementById('drPreviewImg');
+    const vid = document.getElementById('drPreviewVid');
+    const act = document.getElementById('drPreviewActions');
+    if(vid){try{vid.pause();}catch{} vid.style.display='none'; vid.src='';}
+    if(img){img.src=url; img.style.display='block';}
+    if(act) act.innerHTML = `<button class="dr-preview-btn">⭐ Сделать обложкой</button>`;
+    act?.querySelector('.dr-preview-btn')?.addEventListener('click',()=>{
+      const idx2=photos.findIndex(p=>p.url===url);
+      if(idx2>=0) setDrawerCover(item,idx2);
+    });
+  }
+  function showPreviewVideo(url){
+    const img = document.getElementById('drPreviewImg');
+    const vid = document.getElementById('drPreviewVid');
+    const act = document.getElementById('drPreviewActions');
+    if(img) img.style.display='none';
+    if(vid){vid.src=url; vid.style.display='block'; vid.play().catch(()=>{});}
+    if(act) act.innerHTML = `<button class="dr-preview-btn">🎬 Сделать LIVE-видео</button>`;
+    act?.querySelector('.dr-preview-btn')?.addEventListener('click',async()=>{
+      await patchItem(item.id,{cover_video_url:url});
+      item.cover_video_url=url;
+      buildDrawerContent(item);
+    });
+  }
+
+  document.querySelectorAll('.dph-thumb').forEach(th=>{
+    th.onclick=e=>{
+      if(e.target.classList.contains('dph-eye')||e.target.classList.contains('dph-star')) return;
+      document.querySelectorAll('.dph-thumb').forEach(t=>t.classList.remove('dph-active'));
+      th.classList.add('dph-active');
+      if(th.dataset.type==='video') showPreviewVideo(th.dataset.url);
+      else showPreviewPhoto(th.dataset.url);
+    };
+  });
+
   document.querySelectorAll('.dph-eye').forEach(btn=>{
     btn.onclick=e=>{e.stopPropagation();toggleDrawerPhotoHidden(item,+btn.dataset.i);};
   });
   document.querySelectorAll('.dph-star').forEach(btn=>{
     btn.onclick=e=>{e.stopPropagation();setDrawerCover(item,+btn.dataset.i);};
   });
-  document.querySelectorAll('.dph-thumb').forEach(th=>{
-    th.onclick=e=>{
-      if(e.target.classList.contains('dph-eye')||e.target.classList.contains('dph-star')) return;
-      setDrawerCover(item,+th.dataset.i);
-    };
-  });
-
-  // Автоплей
   document.querySelectorAll('input[name="dr_ap"]').forEach(r=>{
     r.onchange=()=>patchItem(item.id,{autoplay_mode:r.value});
   });
