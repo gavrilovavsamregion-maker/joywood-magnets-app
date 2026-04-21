@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joywood — Галерея работ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;
+  background:#faf9f6;
+  color:#1e1c18;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* HEADER */
+.gallery-header{
+  padding:40px 24px 0;
+  max-width:1400px;
+  margin:0 auto;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  flex-wrap:wrap;
+}
+.gallery-logo{
+  font-family:'Unbounded',sans-serif;
+  font-size:clamp(20px,3vw,28px);
+  font-weight:600;
+  letter-spacing:-.02em;
+  color:#1e1c18;
+  text-decoration:none;
+}
+.gallery-logo span{color:#7c5c3a}
+.gallery-subtitle{
+  font-size:13px;
+  color:#8a8680;
+  margin-top:4px;
+  font-weight:400;
+}
+
+/* FILTERS */
+.filters-wrap{
+  padding:24px 24px 0;
+  max-width:1400px;
+  margin:0 auto;
+}
+.filters-scroll{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  scrollbar-width:none;
+}
+.filters-scroll::-webkit-scrollbar{display:none}
+.filter-group{
+  display:flex;
+  gap:6px;
+  flex-shrink:0;
+}
+.filter-divider{
+  width:1px;
+  background:#e0ddd7;
+  flex-shrink:0;
+  align-self:stretch;
+  margin:0 4px;
+}
+.filter-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:6px 14px;
+  border-radius:40px;
+  border:1.5px solid #e0ddd7;
+  background:#fff;
+  font-size:13px;
+  font-weight:500;
+  color:#5a5752;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all .18s ease;
+  user-select:none;
+}
+.filter-chip:hover{
+  border-color:#b5997a;
+  color:#7c5c3a;
+  background:#fdf8f3;
+}
+.filter-chip.active{
+  background:#7c5c3a;
+  border-color:#7c5c3a;
+  color:#fff;
+}
+.filter-chip .chip-count{
+  font-size:11px;
+  opacity:.7;
+}
+
+/* STATS */
+.gallery-stats{
+  padding:16px 24px 0;
+  max-width:1400px;
+  margin:0 auto;
+  font-size:12px;
+  color:#a0a09a;
+}
+
+/* MASONRY GRID */
+.masonry-grid{
+  display:block;
+  position:relative;
+  padding:20px 24px 60px;
+  max-width:1400px;
+  margin:0 auto;
+  overflow-x:hidden;
+}
+
+/* CARD */
+.gallery-card{
+  
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff;
+  cursor:pointer;
+  position:relative;
+  /* Тень вместо затемнения */
+  box-shadow:0 1px 3px rgba(30,28,24,.07);
+  transition:
+    transform .22s cubic-bezier(.22,1,.36,1),
+    box-shadow .22s cubic-bezier(.22,1,.36,1);
+  will-change:transform;
+}
+/* HOVER: карточка приподнимается, тень растёт — никакого затемнения */
+.gallery-card:hover{
+  transform:translateY(-4px) scale(1.012);
+  box-shadow:
+    0 8px 24px rgba(30,28,24,.13),
+    0 2px 6px rgba(30,28,24,.07);
+}
+.gallery-card:active{
+  transform:translateY(-1px) scale(1.005);
+  transition-duration:.08s;
+}
+
+.card-img-wrap{
+  position:relative;
+  overflow:hidden;
+  background:#f0ede7;
+  aspect-ratio:var(--ar,4/5);
+  transition:transform .4s cubic-bezier(.22,1,.36,1);
+}
+.card-img-wrap img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+.gallery-card:hover .card-img-wrap{
+  transform:scale(1.03);
+}
+
+/* Видео-бейдж */
+.card-video-badge{
+  position:absolute;
+  top:8px;
+  left:8px;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);
+  color:#fff;
+  font-size:11px;
+  font-weight:600;
+  padding:3px 9px;
+  border-radius:20px;
+  pointer-events:none;
+}
+
+/* Тонкая полоска породы дерева вверху карточки (вместо цветной рамки) */
+.card-wood-stripe{
+  height:3px;
+  width:100%;
+  background:linear-gradient(90deg,#c8a882,#e8d5ba);
+}
+
+/* Нижняя инфо-зона */
+.card-info{
+  padding:10px 12px 12px;
+}
+.card-title{
+  font-size:13px;
+  font-weight:600;
+  color:#1e1c18;
+  line-height:1.3;
+  margin-bottom:6px;
+  /* Текст появляется чуть позже при hover */
+  transition:color .18s;
+}
+.gallery-card:hover .card-title{ color:#7c5c3a; }
+.card-meta{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.card-cat{
+  font-size:11px;
+  color:#8a8680;
+  font-weight:500;
+}
+.card-wood{
+  font-size:11px;
+  color:#b5997a;
+  font-weight:500;
+}
+.card-rating{
+  font-size:11px;
+  color:#d4a849;
+  margin-left:auto;
+}
+
+/* Ссылка на Ozon — появляется при hover снизу */
+.card-ozon-link{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-size:11px;
+  color:#0068ad;
+  text-decoration:none;
+  font-weight:600;
+  margin-top:7px;
+  opacity:0;
+  transform:translateY(4px);
+  transition:opacity .2s, transform .2s;
+  pointer-events:none;
+}
+.gallery-card:hover .card-ozon-link{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+.card-ozon-link svg{flex-shrink:0}
+
+/* LIGHTBOX */
+.lightbox{
+  position:fixed;inset:0;
+  z-index:1000;
+  background:rgba(15,13,10,.88);
+  backdrop-filter:blur(12px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s;
+  padding:20px;
+}
+.lightbox.open{opacity:1;pointer-events:auto}
+.lightbox-inner{
+  position:relative;
+  z-index:1;
+  max-width:900px;
+  width:100%;
+  background:#1e1c18;
+  border-radius:16px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  max-height:90vh;
+  transform:scale(.96);
+  transition:transform .25s cubic-bezier(.22,1,.36,1);
+}
+.lightbox.open .lightbox-inner{transform:scale(1)}
+.lightbox-close{
+  position:absolute;top:14px;right:14px;
+  background:rgba(0,0,0,.5);
+  border:none;color:#fff;
+  width:36px;height:36px;
+  border-radius:50%;
+  font-size:20px;
+  cursor:pointer;
+  z-index:10;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.lightbox-close:hover{background:rgba(0,0,0,.8)}
+.lightbox-media{
+  flex:1;
+  overflow-y:auto;
+  scrollbar-width:thin;
+}
+.lightbox-main-img{
+  width:100%;
+  height:auto;
+  display:block;
+  max-height:60vh;
+  object-fit:contain;
+  background:#111;
+}
+.lightbox-thumbs{
+  display:flex;
+  gap:4px;
+  padding:8px;
+  background:#111;
+  overflow-x:auto;
+  scrollbar-width:thin;
+}
+.lightbox-thumb{
+  flex-shrink:0;
+  width:60px;height:48px;
+  object-fit:cover;
+  border-radius:5px;
+  cursor:pointer;
+  opacity:.6;
+  transition:opacity .15s;
+  border:2px solid transparent;
+}
+.lightbox-thumb.active,.lightbox-thumb:hover{opacity:1;border-color:#c8a882}
+.lightbox-video-thumb{
+  flex-shrink:0;
+  width:60px;height:48px;
+  background:#2c3e50;
+  border-radius:5px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  color:#fff;
+  opacity:.7;
+  transition:opacity .15s;
+  border:2px solid transparent;
+}
+.lightbox-video-thumb:hover{opacity:1;border-color:#c8a882}
+.lightbox-detail{
+  padding:16px 20px;
+  background:#1e1c18;
+  color:#e8e4dc;
+}
+.lightbox-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.lightbox-meta{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.lb-cat,.lb-wood{font-size:12px;padding:2px 10px;border-radius:20px}
+.lb-cat{background:#3a2e20;color:#c8a882}
+.lb-wood{background:#2a3020;color:#8fba70}
+.lb-rating{color:#d4a849;font-size:13px}
+.lightbox-review{font-size:13px;color:#a09a90;line-height:1.6;max-height:80px;overflow-y:auto}
+.lightbox-ozon{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:12px;
+  padding:8px 16px;
+  background:#0068ad;
+  color:#fff;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:600;
+  transition:background .15s;
+}
+.lightbox-ozon:hover{background:#005a94}
+.lightbox-download{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:10px;
+  padding:9px 18px;
+  background:transparent;
+  border:1.5px solid #c8b89a;
+  border-radius:8px;
+  color:#6b5c45;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  text-decoration:none;
+  transition:background .18s,color .18s;
+}
+.lightbox-download:hover{background:#f0e8dc;color:#3d2f1e;}
+
+/* EMPTY / LOADING */
+.gallery-loading,.gallery-empty{
+  padding:80px 24px;
+  text-align:center;
+  color:#a09a90;
+  font-size:15px;
+}
+.spinner{
+  width:36px;height:36px;
+  border:3px solid #e0ddd7;
+  border-top-color:#7c5c3a;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Анимация появления карточек */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.gallery-card{
+  animation:fadeUp .35s ease both;
+}
+
+/* Video play button on card */
+.card-play-btn{
+  position:absolute;bottom:10px;right:10px;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(0,0,0,.62);backdrop-filter:blur(4px);
+  border:2px solid rgba(255,255,255,.7);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;
+  pointer-events:all;z-index:3;
+}
+.card-play-btn svg{width:14px;height:14px;margin-left:2px;}
+.card-play-btn:hover{background:rgba(30,100,180,.8);border-color:#fff;transform:scale(1.12);}
+/* pub-cover-wrap */
+.pub-cover-wrap{
+  width:100%;aspect-ratio:4/5;overflow:hidden;
+  background:#f0ede7;border-radius:10px 10px 0 0;
+  position:relative;
+}
+.pub-cover-img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.pub-cover-empty{width:100%;height:100%;background:#f0ede7;}
+.pub-video-badge{
+  position:absolute;bottom:8px;right:8px;
+  background:rgba(0,0,0,.55);color:#fff;border-radius:50%;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;pointer-events:none;
+}
+
+/* Carousel arrows */
+.card-arr{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(0,0,0,.52);backdrop-filter:blur(4px);
+  border:1.5px solid rgba(255,255,255,.5);
+  color:#fff;font-size:18px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .18s;z-index:4;
+  opacity:0;pointer-events:none;
+}
+.gallery-card:hover .card-arr{opacity:1;pointer-events:all;}
+.card-arr-l{left:7px;}
+.card-arr-r{right:7px;}
+.card-arr:hover{background:rgba(20,80,40,.8);border-color:#fff;transform:translateY(-50%) scale(1.12);}
+/* Dots */
+.card-dots{
+  position:absolute;bottom:7px;left:50%;transform:translateX(-50%);
+  display:flex;gap:4px;z-index:4;pointer-events:all;
+}
+.card-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.45);cursor:pointer;
+  transition:background .15s,transform .15s;
+}
+.card-dot.active{background:#fff;transform:scale(1.3);}
+/* Cover img transition */
+.card-cover{transition:opacity .15s ease;}
+
+/* === CARD OVERLAY (автор + дата) === */
+.card-overlay {
+  position:absolute; bottom:0; left:0; right:0;
+  background:linear-gradient(transparent, rgba(0,0,0,.72));
+  padding:28px 10px 8px;
+  opacity:0; transition:opacity .2s ease; pointer-events:none;
+  border-radius:0 0 6px 6px;
+}
+.gallery-card:hover .card-overlay { opacity:1; }
+.card-author {
+  color:#fff; font-size:11px; font-weight:600;
+  display:block; text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+.card-date {
+  color:rgba(255,255,255,.7); font-size:10px;
+  display:block; margin-top:1px;
+}
+
+/* === LIGHTBOX — автор, дата === */
+.lb-author-row {
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:8px; flex-wrap:wrap;
+}
+.lb-author {
+  font-size:12px; color:#a09a90;
+}
+.lb-author strong { color:#e8e4dc; font-weight:600; }
+.lb-pubdate {
+  font-size:11px; color:#6a6460;
+  padding:2px 8px; background:#2a2724; border-radius:10px;
+}
+
+/* === LIGHTBOX — фото товара === */
+.lb-product-section { margin-top:14px; border-top:1px solid #2e2c28; padding-top:12px; }
+.lb-product-label {
+  font-size:10px; color:#6a6460;
+  text-transform:uppercase; letter-spacing:.06em;
+  margin-bottom:8px;
+}
+.lb-product-wrap {
+  display:flex; align-items:center; gap:12px;
+  background:#252220; border-radius:8px; padding:10px;
+}
+.lb-product-img {
+  width:68px; height:68px; object-fit:cover;
+  border-radius:6px; flex-shrink:0;
+  border:1px solid #3a3632;
+}
+.lb-product-info { flex:1; min-width:0; }
+.lb-product-name {
+  font-size:12px; color:#c8c0b0; line-height:1.4;
+  margin-bottom:6px;
+  display:-webkit-box; -webkit-line-clamp:2;
+  -webkit-box-orient:vertical; overflow:hidden;
+}
+.lb-product-link {
+  display:inline-block; font-size:11px; font-weight:600;
+  color:#c8a882; text-decoration:none;
+  border:1px solid #6a5040; border-radius:5px;
+  padding:3px 10px; transition:all .15s;
+}
+.lb-product-link:hover { background:#3a2e20; color:#e8c8a2; }
+.lb-product-loading { font-size:11px; color:#5a5652; padding:4px 0; }
+</style>
+</head>
+<body>
+
+<header class="gallery-header">
+  <div>
+    <a class="gallery-logo" href="https://joywood.fun" target="_blank">Joy<span>wood</span></a>
+    <div class="gallery-subtitle">Галерея работ наших мастеров</div>
+  </div>
+</header>
+
+<div class="filters-wrap">
+  <div class="filters-scroll">
+    <div class="filter-group" id="filterCats">
+      <button class="filter-chip active" data-type="cat" data-val="">Все</button>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group" id="filterWoods">
+      <button class="filter-chip active" data-type="wood" data-val="">Любая порода</button>
+    </div>
+  </div>
+</div>
+
+<div class="gallery-stats" id="galleryStats"></div>
+
+<div class="masonry-grid" id="masonryGrid">
+  <div class="gallery-loading"><div class="spinner"></div>Загрузка...</div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lbClose" aria-label="Закрыть">×</button>
+    <div class="lightbox-media">
+      <img class="lightbox-main-img" id="lbMainImg" src="" alt="">
+      <div class="lightbox-thumbs" id="lbThumbs"></div>
+    </div>
+    <div class="lightbox-detail">
+      <div class="lightbox-title" id="lbTitle"></div>
+      <div class="lb-author-row">
+        <span class="lb-author">Мастер: <strong id="lbAuthor"></strong></span>
+        <span class="lb-pubdate" id="lbPubDate"></span>
+      </div>
+      <div class="lightbox-meta" id="lbMeta"></div>
+      <div class="lightbox-review" id="lbReview"></div>
+      <div id="lbOzonWrap"></div>
+      <div id="lbDownloadWrap"></div>
+      <div class="lb-product-section" id="lbProductImg"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/masonry.min.js"></script>
+<script src="/static/imagesloaded.min.js"></script>
+<script src="/static/widget.js?v=1776762347"></script>
+</body>
+</html>
