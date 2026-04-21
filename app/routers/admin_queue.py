@@ -26,6 +26,7 @@ class ApproveRequest(BaseModel):
     display_size: Optional[str] = None
     display_size_manual: Optional[bool] = None
     ai_tags: list[str] = []
+    ai_photo_analysis: Optional[list] = None
 
 
 class UpdateItemRequest(BaseModel):
@@ -113,13 +114,50 @@ async def approve(review_id: int, body: ApproveRequest):
         custom_url = body.product_url.strip() if body.product_url and body.product_url.strip() else None
         cover = body.cover_url or None
         ds = body.display_size if body.display_size in ('small','normal','large','full') else 'normal'
+
+        # Автоприменение AI-анализа: выбрать лучшее фото и применить focal/scale/crop
+        import json as _json
+        ai_analyses = body.ai_photo_analysis if hasattr(body, 'ai_photo_analysis') and body.ai_photo_analysis else []
+        # Если есть ai_photo_analysis в отзыве - достаём его
+        if not ai_analyses:
+            rev_ai = await conn.fetchrow(
+                "SELECT ai_photo_analysis FROM reviews WHERE id=$1", review_id
+            )
+            if rev_ai and rev_ai['ai_photo_analysis']:
+                raw = rev_ai['ai_photo_analysis']
+                try:
+                    ai_analyses = _json.loads(raw) if isinstance(raw, str) else raw
+                except Exception:
+                    ai_analyses = []
+
+        # Находим лучший AI-результат (фильтр: confidence != low, сорт по quality_score)
+        best_ai = None
+        if ai_analyses:
+            good = [a for a in ai_analyses if a.get('confidence') != 'low' and a.get('photo_type') not in ('packaging', 'other')]
+            pool = good or ai_analyses
+            best_ai = max(pool, key=lambda a: a.get('quality_score', 0))
+
+        # Фокальная точка и scale из AI
+        focal_x = float(best_ai['suggested_focal_x'] * 100) if best_ai and 'suggested_focal_x' in best_ai else None
+        focal_y = float(best_ai['suggested_focal_y'] * 100) if best_ai and 'suggested_focal_y' in best_ai else None
+        ai_scale = float(best_ai.get('suggested_scale', 1.0)) if best_ai else 1.0
+        ai_crop = best_ai.get('suggested_crop') if best_ai else None
+        valid_crops = ('1/1', '4/3', '3/4', '3/2', '2/3', '16/9')
+        ai_crop = ai_crop if ai_crop in valid_crops else '4/3'
+        # display_size: берём из AI если не был задан вручную
+        if not body.display_size and best_ai and best_ai.get('display_size') in ('small','normal','large'):
+            ds = best_ai['display_size']
+
         item_id = await conn.fetchval(
             "INSERT INTO collection_items"
-            " (review_id, title, category, wood_type, custom_product_url, cover_url, is_published, display_size)"
+            " (review_id, title, category, wood_type, custom_product_url, cover_url, is_published,"
+            " display_size, cover_focal_x, cover_focal_y, cover_scale, cover_aspect_ratio)"
             " VALUES ($1, $2, $3, $4, $5,"
-            " COALESCE($6, (SELECT COALESCE(photos->0->>'url','') FROM reviews WHERE id=$1)), true, $7)"
+            " COALESCE($6, (SELECT COALESCE(photos->0->>'url','') FROM reviews WHERE id=$1)),"
+            " true, $7, $8, $9, $10, $11)"
             " RETURNING id",
-            review_id, body.title, body.category, body.wood_type, custom_url, cover, ds
+            review_id, body.title, body.category, body.wood_type, custom_url, cover,
+            ds, focal_x, focal_y, ai_scale, ai_crop
         )
         return {"ok": True, "item_id": item_id}
 

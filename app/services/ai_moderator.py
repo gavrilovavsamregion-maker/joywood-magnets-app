@@ -97,6 +97,7 @@ Analyze the photo and return ONLY valid JSON (no markdown, no explanation):
   "suggested_focal_x": <0.0-1.0>,
   "suggested_focal_y": <0.0-1.0>,
   "suggested_crop": "1/1" | "4/3" | "3/4" | "3/2" | "2/3",
+  "suggested_scale": <1.0-2.5>,
   "suggested_title": "<3-6 word Russian title if craft, else null>",
   "category": "<one of: {categories_list}>",
   "confidence": "high" | "medium" | "low",
@@ -109,7 +110,21 @@ display_size — physical size of the CRAFT OBJECT (not photo size):
   large  = panel, icon, shelf, table, wall art, large sculpture
 
 suggested_focal_x/y = normalized 0.0-1.0 position of geometric CENTER of the main object.
-suggested_crop = best ratio to show the WHOLE object without cutting; if unsure use "1/1".
+  If object is in the lower half of image → y > 0.5. Upper half → y < 0.5.
+  If object is off-center horizontally → adjust x accordingly.
+
+suggested_crop — orientation MUST match the object shape:
+  Object TALLER than wide → use "2/3" or "3/4"
+  Object WIDER than tall → use "4/3" or "3/2"
+  Object roughly square → use "1/1"
+  NEVER choose a crop that cuts off the main object.
+
+suggested_scale — zoom factor to fill the frame with the object:
+  1.0 = object already fills most of the frame (>60% of frame area)
+  1.3-1.6 = object is medium-sized in frame (30-60% of frame area)
+  1.7-2.5 = object is small in frame or has large empty background (<30% of frame area)
+  Max 2.0 for group shots or texture photos.
+
 quality_score: 90-100 full clear beautiful craft; 70-89 good full view; 50-69 partial/shadow; 0-49 packaging/blur/unrelated."""
 
 
@@ -141,14 +156,18 @@ quality_score: 90-100 full clear beautiful craft; 70-89 good full view; 50-69 pa
             m = re.search(r'\{.*\}', content, re.DOTALL)
             if m:
                 data = json.loads(m.group())
+                raw_scale = float(data.get("suggested_scale", 1.0))
+                safe_scale = round(max(1.0, min(2.5, raw_scale)), 2)
                 return {
                     "photo_index": idx,
                     "quality_score": int(data.get("quality_score", 40)),
                     "photo_type": data.get("photo_type", "other"),
                     "object_size": data.get("object_size", "medium"),
+                    "display_size": data.get("display_size", "normal"),
                     "include_in_slideshow": bool(data.get("include_in_slideshow", idx == 0)),
                     "suggested_focal_x": float(data.get("suggested_focal_x", 0.5)),
                     "suggested_focal_y": float(data.get("suggested_focal_y", 0.45)),
+                    "suggested_scale": safe_scale,
                     "suggested_crop": data.get("suggested_crop", "4/3"),
                     "suggested_title": data.get("suggested_title") or None,
                     "category": data.get("category", "Другое"),
