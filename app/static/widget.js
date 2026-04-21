@@ -300,6 +300,16 @@ function makeCard(item, idx, w, h){
 }
 
 // ===== LIGHTBOX =====
+
+function stopAllBgVideos(){
+  document.querySelectorAll('.gallery-card').forEach(c=>{
+    if(c._autoVid){
+      try{c._autoVid.pause();}catch{}
+      c._autoVid.style.opacity='0';
+      setTimeout(()=>{ if(c._autoVid){c._autoVid.remove();c._autoVid=null;} const ci=c.querySelector('.card-cover'); if(ci) ci.style.opacity=''; },400);
+    }
+  });
+}
 function openLightbox(item, photos, videos){
   const lb = document.getElementById('lightbox');
   if(!lb) return;
@@ -318,18 +328,7 @@ function openLightbox(item, photos, videos){
   const visPhotos = photos.filter((_,i)=>!hiddenIdx.includes(i));
   const cover = item.cover_url || visPhotos[0]?.url || '';
 
-  // Останавливаем все фоновые автоплей карточек
-  document.querySelectorAll('.gallery-card').forEach(c=>{
-    if(c._autoVid){
-      try{c._autoVid.pause();}catch{}
-      c._autoVid.style.opacity='0';
-      setTimeout(()=>{
-        if(c._autoVid){c._autoVid.remove();c._autoVid=null;}
-        const ci=c.querySelector('.card-cover');
-        if(ci) ci.style.opacity='';
-      },400);
-    }
-  });
+  stopAllBgVideos();
   const oldVid = document.getElementById('lbVideo');
   if(oldVid) oldVid.remove();
 
@@ -435,6 +434,35 @@ function openLightbox(item, photos, videos){
     }
   }
 
+  // Навигация назад/вперёд
+  let _lbAllMedia = [...visPhotos.map((p,i)=>({type:'photo',url:p.url,idx:i})), ...videos.map((v,i)=>({type:'video',url:v.url||v,idx:i}))];
+  let _lbCur = item.cover_video_url ? _lbAllMedia.findIndex(m=>m.type==='video'&&m.url===item.cover_video_url) : 0;
+  if(_lbCur < 0) _lbCur = 0;
+  function _lbGo(n){
+    _lbCur = (n + _lbAllMedia.length) % _lbAllMedia.length;
+    const m = _lbAllMedia[_lbCur];
+    const vid = document.getElementById('lbVideo');
+    if(m.type==='video'){
+      if(!vid || vid.src !== m.url){
+        let v2 = document.getElementById('lbVideo');
+        if(!v2){ v2=document.createElement('video'); v2.id='lbVideo'; v2.controls=true; v2.playsInline=true; v2.autoplay=true; v2.style.cssText='width:100%;max-height:60vh;background:#000;display:block;position:relative;z-index:1;border-radius:8px;'; mainImg.parentNode.insertBefore(v2,mainImg); }
+        v2.src=m.url; mainImg.style.display='none'; v2.play().catch(()=>{});
+      }
+    } else {
+      if(vid){try{vid.pause();}catch{} vid.style.display='none';}
+      mainImg.src=m.url; mainImg.style.display='block';
+      const _dlw=document.getElementById('lbDownloadWrap');
+      if(_dlw) _dlw.innerHTML=m.url?`<a class="lightbox-download" href="/api/gallery/download?url=${encodeURIComponent(m.url)}">⬇ Скачать фото</a>`:'' ;
+    }
+    thumbs.querySelectorAll('.lightbox-thumb,.lightbox-video-thumb').forEach((t,i)=>t.classList.toggle('active',i===_lbCur));
+    const prevBtn=document.getElementById('lbPrev'); const nextBtn=document.getElementById('lbNext');
+    if(prevBtn) prevBtn.disabled=_lbAllMedia.length<=1;
+    if(nextBtn) nextBtn.disabled=_lbAllMedia.length<=1;
+  }
+  const _lbPrev=document.getElementById('lbPrev'); const _lbNext=document.getElementById('lbNext');
+  if(_lbPrev) _lbPrev.onclick=e=>{e.stopPropagation();_lbGo(_lbCur-1);};
+  if(_lbNext) _lbNext.onclick=e=>{e.stopPropagation();_lbGo(_lbCur+1);};
+
   lb.classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -446,7 +474,11 @@ function bindLightbox(){
   if(closeBtn) closeBtn.onclick = closeLightbox;
   if(lightbox) lightbox.onclick = (e)=>{ if(e.target===lightbox) closeLightbox(); };
   if(!_lbKeyBound){
-    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLightbox(); });
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape') closeLightbox();
+      if(e.key==='ArrowLeft')  { const lb2=document.getElementById('lightbox'); if(lb2?.classList.contains('open')) document.getElementById('lbPrev')?.click(); }
+      if(e.key==='ArrowRight') { const lb2=document.getElementById('lightbox'); if(lb2?.classList.contains('open')) document.getElementById('lbNext')?.click(); }
+    });
     _lbKeyBound = true;
   }
 }
@@ -556,6 +588,19 @@ function initVideoAutoplay(){
     });
   },{threshold:[0,0.4,1.0], rootMargin:'-15% 0px -15% 0px'});
   document.querySelectorAll('.gallery-card[data-video-url]').forEach(c=>obs.observe(c));
+  // Остановка видео при скролле пальцем на мобильном (touchstart)
+  let _scrollTimer;
+  window.addEventListener('scroll', ()=>{ // scrollstopvideo
+    clearTimeout(_scrollTimer);
+    // Приостанавливаем видео у карточек вышедших из зоны viewport
+    document.querySelectorAll('.gallery-card').forEach(c=>{
+      if(!c._autoVid) return;
+      const r=c.getBoundingClientRect();
+      const vh=window.innerHeight;
+      const inZone=r.top<vh*0.85&&r.bottom>vh*0.15;
+      if(!inZone){ try{c._autoVid.pause();}catch{} c._autoVid.style.opacity='0'; setTimeout(()=>{ if(c._autoVid){c._autoVid.remove();c._autoVid=null;} const ci=c.querySelector('.card-cover'); if(ci) ci.style.opacity=''; },400); }
+    });
+  },{passive:true});
 }
 
 function initAllCarousels(){

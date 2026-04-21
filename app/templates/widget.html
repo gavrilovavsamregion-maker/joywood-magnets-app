@@ -321,6 +321,28 @@ body{
   transition:transform .25s cubic-bezier(.22,1,.36,1);
 }
 .lightbox.open .lightbox-inner{transform:scale(1)}
+
+.lb-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(0,0,0,.45);
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s, opacity .2s;
+  backdrop-filter: blur(4px);
+}
+.lb-nav:hover { background: rgba(0,0,0,.75); }
+.lb-nav-prev { left: 8px; }
+.lb-nav-next { right: 8px; }
+.lb-nav[disabled] { opacity: 0.2; pointer-events: none; }
+
 .lightbox-close{
   position:absolute;top:14px;right:14px;
   background:rgba(0,0,0,.5);
@@ -602,7 +624,9 @@ body{
   <div class="lightbox-inner">
     <button class="lightbox-close" id="lbClose" aria-label="Закрыть">×</button>
     <div class="lightbox-media">
+      <button class="lb-nav lb-nav-prev" id="lbPrev" aria-label="Назад">&#10094;</button>
       <img class="lightbox-main-img" id="lbMainImg" src="" alt="">
+      <button class="lb-nav lb-nav-next" id="lbNext" aria-label="Вперёд">&#10095;</button>
       <div class="lightbox-thumbs" id="lbThumbs"></div>
     </div>
     <div class="lightbox-detail">

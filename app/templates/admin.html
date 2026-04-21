@@ -833,14 +833,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   min-width: 0;
 }
 
-.dr-preview-wrap {
-  width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #111;
-  flex-shrink: 0;
-  max-height: 260px;
-}
 .dr-preview-wrap img {
   width: 100%; height: 100%;
   object-fit: cover; display: block;
@@ -848,17 +840,20 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 /* strip thumbnails */
 .dph-strip {
-  display: flex; gap: 6px; flex-wrap: nowrap;
-  overflow-x: auto; padding: 2px 0;
+  display: flex; gap: 8px; flex-wrap: nowrap;
+  overflow-x: auto; padding: 8px 0 6px;
+  background: #111;
+  flex-shrink: 0;
 }
 .dph-thumb {
   position: relative; flex-shrink: 0;
-  width: 56px; height: 56px;
-  border-radius: 5px; overflow: hidden;
+  width: 88px; height: 88px;
+  border-radius: 7px; overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: border-color .15s;
+  transition: border-color .15s, transform .15s;
 }
+.dph-thumb:hover { transform: scale(1.04); }
 .dph-thumb.dph-active { border-color: #c8a882; }
 .dph-thumb.dph-hidden { opacity: .35; }
 .dph-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -972,7 +967,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .dr-preview-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 4/3;
+  flex: 1;
+  min-height: 200px;
   background: #111;
   overflow: hidden;
 }
@@ -1031,13 +1027,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 </div>
 <script src="/static/crop-editor.js?v=1776771482"></script>
 <script src="/static/focal.js?v=1776401321"></script>
-<script src="/static/admin.js?v=1776772338"></script>
+<script src="/static/admin.js?v=1776783514"></script>
 
 <!-- DRAWER -->
 <div id="pubDrawerOverlay" onclick="closeDrawer()"></div>
 <div id="pubDrawer">
   <div id="drawerLeft">
-    <div id="drPreviewPane" style="flex:1;overflow:hidden;"></div>
+    <div id="drPreviewPane" style="flex:1;overflow:hidden;display:flex;flex-direction:column;"></div>
   </div>
   <div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;">
     <div class="dr-header">
