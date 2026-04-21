@@ -295,12 +295,18 @@ function makeCard(item, idx, w, h){
       </div>
     </div>`;
 
-  // Стрелки карусели: event delegation до initCarousel
   card.addEventListener('click', e=>{
     const arrBtn = e.target.closest('.card-arr');
-    if(arrBtn){ e.stopPropagation(); return; } // initCarousel сам обработает
+    if(arrBtn){
+      e.stopPropagation();
+      // Если initCarousel ещё не запустился - запустим вручную
+      if(!card._carousel) initCarousel(card);
+      // Теперь стрелка уже имеет свой обработчик, передаём клик ему
+      arrBtn.dispatchEvent(new MouseEvent('click', {bubbles:false}));
+      return;
+    }
     openLightbox(item, photos, videos);
-  }, true); // capture=true чтобы перехватить раньше любых bubble
+  });
   return card;
 }
 
