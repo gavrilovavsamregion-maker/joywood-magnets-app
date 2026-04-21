@@ -270,7 +270,7 @@ function makeCard(item, idx, w, h){
 
   const author = shortAuthor(item.author_name);
   const pubdate = formatDate(item.review_published_at);
-  const videoBadge = item.cover_video_url ? `<div class="card-live-badge">LIVE</div>` : (hasVideo ? `<div class="card-video-badge">▶ видео</div>` : '');
+  const videoBadge = item.cover_video_url ? `<div class="card-live-badge">LIVE</div>` : '';
 
   card.innerHTML = `
     <div class="card-img-wrap" style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:6px;">
