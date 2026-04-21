@@ -295,7 +295,12 @@ function makeCard(item, idx, w, h){
       </div>
     </div>`;
 
-  card.addEventListener('click', ()=>openLightbox(item, photos, videos));
+  // Стрелки карусели: event delegation до initCarousel
+  card.addEventListener('click', e=>{
+    const arrBtn = e.target.closest('.card-arr');
+    if(arrBtn){ e.stopPropagation(); return; } // initCarousel сам обработает
+    openLightbox(item, photos, videos);
+  }, true); // capture=true чтобы перехватить раньше любых bubble
   return card;
 }
 
