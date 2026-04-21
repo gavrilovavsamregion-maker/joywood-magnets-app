@@ -113,17 +113,23 @@ suggested_focal_x/y = normalized 0.0-1.0 position of geometric CENTER of the mai
   If object is in the lower half of image → y > 0.5. Upper half → y < 0.5.
   If object is off-center horizontally → adjust x accordingly.
 
-suggested_crop — orientation MUST match the object shape:
-  Object TALLER than wide → use "2/3" or "3/4"
-  Object WIDER than tall → use "4/3" or "3/2"
-  Object roughly square → use "1/1"
+suggested_crop — MUST match how the object APPEARS IN THIS PHOTO (not its physical shape):
+  Object appears TALLER than wide in this photo → use "2/3" or "3/4"
+  Object appears WIDER than tall in this photo → use "4/3" or "3/2"
+  Object appears roughly square in this photo → use "1/1"
+  Multiple objects scattered across frame → always use "4/3", scale=1.0
+  photo_type=process or photo_type=texture → always use "4/3", scale=1.0
+  If unsure → use "1/1"
   NEVER choose a crop that cuts off the main object.
+  Example: a knife lying horizontally in photo → "4/3", NOT "2/3"
 
-suggested_scale — zoom factor to fill the frame with the object:
-  1.0 = object already fills most of the frame (>60% of frame area)
-  1.3-1.6 = object is medium-sized in frame (30-60% of frame area)
-  1.7-2.5 = object is small in frame or has large empty background (<30% of frame area)
-  Max 2.0 for group shots or texture photos.
+suggested_scale — zoom to bring object closer. IMPORTANT rules:
+  DEFAULT is 1.0. Only increase if there is clearly too much empty space around the object.
+  1.0 = object fills >50% of frame area, OR object touches/near any edge of frame
+  1.2-1.4 = object is clearly small in center with large empty background (20-50% of frame)
+  1.5-2.0 = object is very small (<20% of frame area), lots of empty space all around
+  NEVER use scale >1.0 if the object is close to any edge - it will be cropped out.
+  NEVER use scale >1.4 unless the object has clear empty space on ALL sides.
 
 quality_score: 90-100 full clear beautiful craft; 70-89 good full view; 50-69 partial/shadow; 0-49 packaging/blur/unrelated."""
 
@@ -156,7 +162,7 @@ quality_score: 90-100 full clear beautiful craft; 70-89 good full view; 50-69 pa
             m = re.search(r'\{.*\}', content, re.DOTALL)
             if m:
                 data = json.loads(m.group())
-                raw_scale = float(data.get("suggested_scale", 1.0))
+                raw_scale = float(data.get("suggested_scale") or 1.0)
                 safe_scale = round(max(1.0, min(2.5, raw_scale)), 2)
                 return {
                     "photo_index": idx,
