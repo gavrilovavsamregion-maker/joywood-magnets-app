@@ -318,6 +318,18 @@ function openLightbox(item, photos, videos){
   const visPhotos = photos.filter((_,i)=>!hiddenIdx.includes(i));
   const cover = item.cover_url || visPhotos[0]?.url || '';
 
+  // Останавливаем все фоновые автоплей карточек
+  document.querySelectorAll('.gallery-card').forEach(c=>{
+    if(c._autoVid){
+      try{c._autoVid.pause();}catch{}
+      c._autoVid.style.opacity='0';
+      setTimeout(()=>{
+        if(c._autoVid){c._autoVid.remove();c._autoVid=null;}
+        const ci=c.querySelector('.card-cover');
+        if(ci) ci.style.opacity='';
+      },400);
+    }
+  });
   const oldVid = document.getElementById('lbVideo');
   if(oldVid) oldVid.remove();
 
@@ -334,6 +346,21 @@ function openLightbox(item, photos, videos){
   }
 
   setMainPhoto(cover);
+  // Если есть видео - автоматически запускаем его вместо фото
+  if(item.cover_video_url){
+    let vid = document.getElementById('lbVideo');
+    if(!vid){
+      vid = document.createElement('video');
+      vid.id='lbVideo'; vid.controls=true; vid.playsInline=true; vid.autoplay=true;
+      vid.style.cssText='width:100%;max-height:60vh;background:#000;display:block;position:relative;z-index:1;border-radius:8px;';
+      mainImg.parentNode.insertBefore(vid, mainImg);
+    }
+    vid.src = item.cover_video_url;
+    vid.currentTime = item.cover_video_start || 0;
+    mainImg.style.display = 'none';
+    // Активируем нужный тамб в плеере
+    thumbs.querySelectorAll('.lightbox-video-thumb').forEach(t=>t.classList.add('active'));
+  }
 
   thumbs.innerHTML = '';
   visPhotos.forEach((p)=>{
