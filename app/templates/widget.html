@@ -165,6 +165,52 @@ body{
   transform:scale(1.03);
 }
 
+
+/* Video pulse loading indicator */
+.card-video-pulse{
+  position:absolute;
+  top:10px;right:10px;
+  width:10px;height:10px;
+  border-radius:50%;
+  background:#fff;
+  z-index:5;
+  animation:vpulse 1.2s ease-in-out infinite;
+  box-shadow:0 0 0 0 rgba(255,255,255,.6);
+}
+@keyframes vpulse{
+  0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.6);}
+  70%{transform:scale(1.1);box-shadow:0 0 0 8px rgba(255,255,255,0);}
+  100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,0);}
+}
+/* Плавный переход cover img при загрузке видео */
+.card-cover{
+  transition:opacity .6s ease;
+}
+/* Индикатор LIVE на видео-карточках */
+.card-live-badge{
+  position:absolute;
+  top:8px;left:8px;
+  background:rgba(220,50,50,.85);
+  backdrop-filter:blur(4px);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.06em;
+  padding:3px 8px;
+  border-radius:20px;
+  pointer-events:none;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.card-live-badge::before{
+  content:'';
+  width:6px;height:6px;
+  border-radius:50%;
+  background:#fff;
+  animation:vpulse 1.2s ease-in-out infinite;
+}
 /* Видео-бейдж */
 .card-video-badge{
   position:absolute;

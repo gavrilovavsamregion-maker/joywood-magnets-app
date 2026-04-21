@@ -250,7 +250,7 @@ function makeCard(item, idx, w, h){
 
   const author = shortAuthor(item.author_name);
   const pubdate = formatDate(item.review_published_at);
-  const videoBadge = hasVideo ? `<div class="card-video-badge">▶ видео</div>` : '';
+  const videoBadge = item.cover_video_url ? `<div class="card-live-badge">LIVE</div>` : (hasVideo ? `<div class="card-video-badge">▶ видео</div>` : '');
 
   card.innerHTML = `
     <div class="card-img-wrap" style="width:${w}px;height:${h}px;overflow:hidden;position:relative;border-radius:6px;">
@@ -475,21 +475,39 @@ function initVideoAutoplay(){
     entries.forEach(e=>{
       const card = e.target;
       if(!card.dataset.videoUrl) return;
-      const img = card.querySelector('.card-cover');
+      const wrap = card.querySelector('.card-img-wrap');
+      const img  = card.querySelector('.card-cover');
       if(e.isIntersecting){
         if(card._autoVid) return;
+        // Пульс пока видео загружается
+        const pulse = document.createElement('div');
+        pulse.className='card-video-pulse';
+        wrap.appendChild(pulse);
         const v = document.createElement('video');
         v.src=card.dataset.videoUrl; v.muted=true; v.playsInline=true; v.loop=true;
         v.currentTime=parseFloat(card.dataset.videoStart)||0;
-        v.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;';
-        card.querySelector('.card-img-wrap').appendChild(v);
+        v.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;opacity:0;transition:opacity .6s ease;';
+        wrap.appendChild(v);
+        v.addEventListener('canplay',()=>{
+          pulse.remove();
+          v.style.opacity='1';  // плавный fade-in
+          if(img) img.style.opacity='0';
+        },{once:true});
         v.play().catch(()=>{});
         card._autoVid=v;
       } else {
-        if(card._autoVid){try{card._autoVid.pause();}catch{} card._autoVid.remove(); card._autoVid=null;}
+        if(card._autoVid){
+          try{card._autoVid.pause();}catch{}
+          card._autoVid.style.opacity='0';
+          setTimeout(()=>{
+            if(card._autoVid){card._autoVid.remove();card._autoVid=null;}
+            if(img) img.style.opacity='';
+            card.querySelector('.card-video-pulse')?.remove();
+          },600);
+        }
       }
     });
-  },{threshold:0.6});
+  },{threshold:0.3, rootMargin:'0px 0px -50px 0px'});
   document.querySelectorAll('.gallery-card[data-video-url]').forEach(c=>obs.observe(c));
 }
 
