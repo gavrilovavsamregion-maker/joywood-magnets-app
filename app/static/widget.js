@@ -170,6 +170,25 @@ function parseAR(str){
   return parseFloat(str) || 1.33;
 }
 
+
+function scatterVideoCards(items) {
+  // Разделяем видео и обычные
+  const videos = items.filter(i => i.cover_video_url);
+  const normal = items.filter(i => !i.cover_video_url);
+  if (!videos.length) return items;
+  // Равномерно расставляем видео через каждые N обычных
+  const gap = Math.max(3, Math.floor(normal.length / videos.length));
+  const result = [];
+  let vi = 0, ni = 0;
+  while (ni < normal.length || vi < videos.length) {
+    // Добавляем gap обычных
+    for (let k = 0; k < gap && ni < normal.length; k++) result.push(normal[ni++]);
+    // Добавляем 1 видео
+    if (vi < videos.length) result.push(videos[vi++]);
+  }
+  return result;
+}
+
 function renderGrid(items){
   const grid = document.getElementById('masonryGrid');
   const stats = document.getElementById('galleryStats');
@@ -193,6 +212,7 @@ function renderGrid(items){
   const targetRowHeight = getTargetRowHeight(containerWidth);
   const spacing = 10;
 
+  items = scatterVideoCards(items);
   const boxes = justifiedLayout(items, containerWidth, targetRowHeight, spacing);
 
   grid.innerHTML = '';
@@ -477,7 +497,7 @@ function initVideoAutoplay(){
       if(!card.dataset.videoUrl) return;
       const wrap = card.querySelector('.card-img-wrap');
       const img  = card.querySelector('.card-cover');
-      if(e.isIntersecting){
+      if(e.isIntersecting && e.intersectionRatio >= 0.4){
         if(card._autoVid) return;
         // Пульс пока видео загружается
         const pulse = document.createElement('div');
@@ -507,7 +527,7 @@ function initVideoAutoplay(){
         }
       }
     });
-  },{threshold:0.3, rootMargin:'0px 0px -50px 0px'});
+  },{threshold:[0,0.4,1.0], rootMargin:'-15% 0px -15% 0px'});
   document.querySelectorAll('.gallery-card[data-video-url]').forEach(c=>obs.observe(c));
 }
 

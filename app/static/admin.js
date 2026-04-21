@@ -562,6 +562,11 @@ function buildDrawerContent(item){
         <input type="checkbox" id="drDisplaySizeManual" ${item.display_size_manual?'checked':''}>
         <span>Зафиксировать (AI не перезапишет)</span>
       </label>
+      ${item.cover_video_url ? `
+      <label class="dr-size-manual-label" style="margin-top:6px;">
+        <input type="checkbox" id="drDisableVideo" ${!item.cover_video_url?'checked':''}>
+        <span>Отключить видео (показывать только фото)</span>
+      </label>` : ''}
     </div>
     <div class="dr-actions">
       <button class="dr-btn dr-save">💾 Сохранить</button>
@@ -609,11 +614,18 @@ function buildDrawerContent(item){
 
   // Сохранить
   _db.querySelector('.dr-save').onclick=async()=>{
+    const disableVideoEl = document.getElementById('drDisableVideo');
+    const videoPayload = disableVideoEl
+      ? (disableVideoEl.checked ? {cover_video_url: ''} : {})
+      : {};
+    const manualSize = document.getElementById('drDisplaySizeManual')?.checked;
     await patchItem(item.id,{
       title:    document.getElementById('drTitleInput').value.trim(),
       category: document.getElementById('drCat').value,
       wood_type:document.getElementById('drWood').value||null,
       product_url: document.getElementById('drUrl').value.trim()||null,
+      display_size_manual: manualSize,
+      ...videoPayload,
     });
     item.title    = document.getElementById('drTitleInput').value.trim();
     item.category = document.getElementById('drCat').value;
